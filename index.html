@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BikeStop - Bikepacking POI Finder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .map-section {
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 500px;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .poi-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+
+        .poi-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .poi-item:hover {
+            background: #f5f5f5;
+            transform: translateX(5px);
+        }
+
+        .poi-item.active {
+            background: #e8eaf6;
+            border-left: 4px solid #667eea;
+        }
+
+        .poi-emoji {
+            font-size: 1.8em;
+            margin-right: 10px;
+        }
+
+        .poi-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .poi-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .poi-distance {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .status {
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            text-align: center;
+            color: #666;
+        }
+
+        .status.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .filters {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(135deg, #e0e0e0, #f5f5f5);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-emoji {
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚴‍♂️ BikeStop</h1>
+            <p>Finde Wasser, Shops & Toiletten in deiner Nähe</p>
+        </header>
+
+        <div class="content">
+            <!-- Karte -->
+            <div class="map-section">
+                <div class="map-container" id="map">
+                    🗺️ Karte wird geladen...
+                </div>
+            </div>
+
+            <!-- Infos & POIs -->
+            <div class="info-section">
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="startTracking()">📍 GPS starten</button>
+                    <button class="btn btn-secondary" onclick="resetFilters()">Zurücksetzen</button>
+                </div>
+
+                <div class="status" id="status">
+                    Klicke auf "GPS starten" um deine Position zu ermitteln
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <h3 style="margin-bottom: 10px; color: #333;">Filter nach Kategorie:</h3>
+                    <div class="filters">
+                        <button class="filter-btn active" onclick="filterPOI('all')">📍 Alle</button>
+                        <button class="filter-btn" onclick="filterPOI('water')">💧 Wasser</button>
+                        <button class="filter-btn" onclick="filterPOI('grocery')">🏪 Supermarkt</button>
+                        <button class="filter-btn" onclick="filterPOI('fuel')">⛽ Tankstelle</button>
+                        <button class="filter-btn" onclick="filterPOI('toilet')">🚽 Klo</button>
+                        <button class="filter-btn" onclick="filterPOI('camp')">🏕️ Camping</button>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; margin-bottom: 10px; color: #333;">Nächste POIs:</h3>
+                <div class="poi-list" id="poiList">
+                    <div class="poi-item">
+                        <div class="poi-info">
+                            <span>
+                                <span class="poi-emoji">💧</span>
+                                <span class="poi-name">Brunnen Hauptplatz</span>
+                            </span>
+                            <span class="poi-distance">2.3 km</span>
+                        </div>
+                    </div>
+                    <div class="poi-item">
+                        <div class="poi-info">
+                            <span>
+                                <span class="poi-emoji">🏪</span>
+                                <span class="poi-name">EDEKA Markt</span>
+                            </span>
+                            <span class="poi-distance">5.1 km</span>
+                        </div>
+                    </div>
+                    <div class="poi-item">
+                        <div class="poi-info">
+                            <span>
+                                <span class="poi-emoji">🚽</span>
+                                <span class="poi-name">öffentliches WC</span>
+                            </span>
+                            <span class="poi-distance">7.4 km</span>
+                        </div>
+                    </div>
+                    <div class="poi-item">
+                        <div class="poi-info">
+                            <span>
+                                <span class="poi-emoji">⛽</span>
+                                <span class="poi-name">Shell Tankstelle</span>
+                            </span>
+                            <span class="poi-distance">12.8 km</span>
+                        </div>
+                    </div>
+                    <div class="poi-item">
+                        <div class="poi-info">
+                            <span>
+                                <span class="poi-emoji">🏕️</span>
+                                <span class="poi-name">Campingplatz Naturpark</span>
+                            </span>
+                            <span class="poi-distance">18.5 km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-emoji">💧</span>
+                        <span>Wasser</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-emoji">🏪</span>
+                        <span>Supermarkt</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-emoji">⛽</span>
+                        <span>Tankstelle</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-emoji">🚽</span>
+                        <span>Toilette</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-emoji">🏕️</span>
+                        <span>Camping</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-emoji">🍕</span>
+                        <span>Restaurant</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // POI Beispieldaten
+        const mockPOIs = [
+            { id: 1, name: 'Brunnen Hauptplatz', type: 'water', emoji: '💧', distance: 2.3, lat: 48.2024, lon: 16.3694 },
+            { id: 2, name: 'EDEKA Markt', type: 'grocery', emoji: '🏪', distance: 5.1, lat: 48.2050, lon: 16.3700 },
+            { id: 3, name: 'öffentliches WC', type: 'toilet', emoji: '🚽', distance: 7.4, lat: 48.2010, lon: 16.3650 },
+            { id: 4, name: 'Shell Tankstelle', type: 'fuel', emoji: '⛽', distance: 12.8, lat: 48.1950, lon: 16.3800 },
+            { id: 5, name: 'Campingplatz Naturpark', type: 'camp', emoji: '🏕️', distance: 18.5, lat: 48.1850, lon: 16.3950 },
+            { id: 6, name: 'Pizzeria Roma', type: 'food', emoji: '🍕', distance: 3.2, lat: 48.2040, lon: 16.3720 },
+            { id: 7, name: 'Apotheke am Markt', type: 'medical', emoji: '🏥', distance: 2.7, lat: 48.2030, lon: 16.3710 },
+        ];
+
+        let currentFilter = 'all';
+        let userPosition = null;
+
+        function startTracking() {
+            const status = document.getElementById('status');
+            
+            if (!navigator.geolocation) {
+                status.className = 'status error';
+                status.textContent = '❌ Geolocation wird nicht unterstützt';
+                return;
+            }
+
+            status.className = 'status active';
+            status.textContent = '📍 GPS wird aktiviert...';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userPosition = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+
+                    status.className = 'status active';
+                    status.textContent = `✅ Position ermittelt: ${userPosition.lat.toFixed(4)}, ${userPosition.lon.toFixed(4)}`;
+
+                    updateMap();
+                    renderPOIs();
+                },
+                (error) => {
+                    status.className = 'status error';
+                    status.textContent = `❌ Fehler: ${error.message}`;
+                }
+            );
+        }
+
+        function filterPOI(type) {
+            currentFilter = type;
+
+            // UI Update
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            renderPOIs();
+        }
+
+        function resetFilters() {
+            currentFilter = 'all';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.filter-btn')[0].classList.add('active');
+            renderPOIs();
+        }
+
+        function renderPOIs() {
+            const poiList = document.getElementById('poiList');
+            poiList.innerHTML = '';
+
+            let filtered = mockPOIs;
+            if (currentFilter !== 'all') {
+                filtered = mockPOIs.filter(poi => poi.type === currentFilter);
+            }
+
+            // Sortiere nach Distanz
+            filtered.sort((a, b) => a.distance - b.distance);
+
+            if (filtered.length === 0) {
+                poiList.innerHTML = '<div class="poi-item" style="text-align: center; color: #999;">Keine POIs gefunden</div>';
+                return;
+            }
+
+            filtered.forEach(poi => {
+                const div = document.createElement('div');
+                div.className = 'poi-item';
+                div.innerHTML = `
+                    <div class="poi-info">
+                        <span>
+                            <span class="poi-emoji">${poi.emoji}</span>
+                            <span class="poi-name">${poi.name}</span>
+                        </span>
+                        <span class="poi-distance">${poi.distance.toFixed(1)} km</span>
+                    </div>
+                `;
+                div.onclick = () => selectPOI(div);
+                poiList.appendChild(div);
+            });
+        }
+
+        function selectPOI(element) {
+            document.querySelectorAll('.poi-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+
+        function updateMap() {
+            const map = document.getElementById('map');
+            if (userPosition) {
+                map.innerHTML = `
+                    <div style="text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;">
+                        <div style="font-size: 3em;">🗺️</div>
+                        <div>
+                            <p style="font-size: 1.2em; color: #333; margin-bottom: 10px;">Deine Position</p>
+                            <p style="color: #666; font-size: 0.9em;">📍 ${userPosition.lat.toFixed(4)}, ${userPosition.lon.toFixed(4)}</p>
+                        </div>
+                        <div style="margin-top: 20px; padding: 20px; background: #667eea; color: white; border-radius: 8px; text-align: center;">
+                            <p style="font-size: 1.1em;">POIs werden geladen...</p>
+                            <p style="font-size: 0.9em; opacity: 0.9; margin-top: 5px;">(Echte Karte erfordert Mapbox/Google Maps API)</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initial render
+        renderPOIs();
+    </script>
+</body>
+</html>
