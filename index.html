@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BikeStop - Mountain Scout</title>
+    <title>BikeStop - Mountain Scout v3</title>
     <style>
         * {
             margin: 0;
@@ -11,11 +12,10 @@
             box-sizing: border-box;
         }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            font-family: 'Arial', sans-serif;
-            background: #f5f5f5;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f0f0;
+            overflow: hidden;
         }
 
         .container {
@@ -23,216 +23,226 @@
             height: 100vh;
         }
 
-        .map-section {
+        .map-container {
             flex: 1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: white;
-            text-align: center;
+            position: relative;
+            background: #e0e0e0;
         }
 
-        .map-display {
+        #map {
             width: 100%;
             height: 100%;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect fill="%23e8f4f8" width="800" height="600"/><circle cx="400" cy="300" r="150" fill="%23c8e6c9" opacity="0.3"/><path d="M300 250 L350 200 L400 220 L450 180 L500 240" stroke="%238bc34a" stroke-width="2" fill="none"/><text x="400" y="320" font-size="20" fill="%23666" text-anchor="middle">📍 Deine Position</text></svg>') center/cover no-repeat;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #87ceeb 0%, #e0f6ff 100%);
             position: relative;
+            overflow: hidden;
+        }
+
+        .map-tiles {
+            width: 100%;
+            height: 100%;
+            background-image: url('https://tile.openstreetmap.org/5/16/10.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .zoom-btn {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            font-size: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .map-overlay {
-            text-align: center;
-        }
-
-        .map-overlay h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        .map-overlay p {
-            font-size: 14px;
-            opacity: 0.9;
         }
 
         .sidebar {
             width: 380px;
             background: white;
-            border-left: 1px solid #ddd;
             overflow-y: auto;
             padding: 20px;
-            box-shadow: -2px 0 8px rgba(0,0,0,0.15);
-            display: flex;
-            flex-direction: column;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            border-left: 1px solid #ddd;
         }
 
         .sidebar h1 {
-            color: #2c5f2d;
-            font-size: 20px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: #007bff;
+            margin-bottom: 15px;
+            font-size: 22px;
         }
 
-        .subtitle {
-            color: #999;
-            font-size: 12px;
-            margin-bottom: 20px;
-        }
-
-        .location-box {
-            background: linear-gradient(135deg, #2c5f2d 0%, #4a8f50 100%);
-            color: white;
+        .status-box {
+            background: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(44, 95, 45, 0.3);
-            display: none;
+            border-left: 4px solid #ffc107;
         }
 
-        .location-box h3 {
-            font-size: 16px;
-            margin-bottom: 8px;
+        .status-box.success {
+            border-left-color: #28a745;
+            background: #d4edda;
         }
 
-        .coords {
-            font-size: 11px;
-            opacity: 0.9;
+        .status-box.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .coordinates {
             font-family: monospace;
-            margin-bottom: 8px;
+            font-size: 12px;
+            color: #666;
+            margin: 5px 0;
+            word-break: break-all;
+        }
+
+        .location-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
         }
 
         .section {
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            margin: 25px 0;
         }
 
         .section h2 {
-            font-size: 14px;
+            font-size: 18px;
             color: #333;
             margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
         }
 
         .poi-item {
-            background: #f9f9f9;
-            border-left: 4px solid #2c5f2d;
+            background: #f8f9fa;
             padding: 12px;
             margin-bottom: 10px;
             border-radius: 6px;
+            border-left: 4px solid #007bff;
             transition: all 0.3s;
-            cursor: pointer;
         }
 
         .poi-item:hover {
-            background: #f0f0f0;
-            transform: translateX(4px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #e7f3ff;
+            transform: translateX(5px);
         }
 
         .poi-name {
             font-weight: bold;
             color: #333;
             font-size: 14px;
-            margin-bottom: 4px;
         }
 
         .poi-info {
             font-size: 12px;
             color: #666;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .stars {
-            color: #ffc107;
-            font-size: 12px;
-        }
-
-        .gps-button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #2c5f2d 0%, #4a8f50 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .gps-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(44, 95, 45, 0.3);
-        }
-
-        .export-button {
-            width: 100%;
-            padding: 10px;
-            background: #f0f0f0;
-            color: #333;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
             margin-top: 5px;
         }
 
-        .export-button:hover {
-            background: #e0e0e0;
+        .poi-distance {
+            color: #007bff;
+            font-weight: bold;
+            font-size: 13px;
         }
 
-        .no-data {
-            color: #999;
-            font-size: 12px;
-            text-align: center;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 6px;
+        .emoji {
+            margin-right: 8px;
         }
 
         .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .stat {
-            background: #f9f9f9;
-            padding: 10px;
+            background: #e7f3ff;
+            padding: 12px;
             border-radius: 6px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2c5f2d;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: #999;
-            margin-top: 4px;
+            font-size: 13px;
+            margin: 10px 0;
         }
 
         .loading {
-            color: #999;
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #ff4444;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 50;
+            transition: all 0.3s;
+        }
+
+        .marker:hover {
+            width: 40px;
+            height: 40px;
+            z-index: 51;
+        }
+
+        .marker.current {
+            background: #4444ff;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(68, 68, 255, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(68, 68, 255, 0); }
+        }
+
+        .marker-popup {
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             font-size: 12px;
+            z-index: 60;
+            white-space: nowrap;
         }
 
         @media (max-width: 768px) {
@@ -242,201 +252,398 @@
 
             .sidebar {
                 width: 100%;
+                max-height: 50vh;
                 border-left: none;
                 border-top: 1px solid #ddd;
-                max-height: 45vh;
             }
 
-            .map-section {
-                height: 55vh;
+            #map {
+                height: 50vh;
             }
+        }
+
+        .region-badge {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+
+        .difficulty {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .difficulty.easy {
+            background: #90EE90;
+            color: #333;
+        }
+
+        .difficulty.medium {
+            background: #FFD700;
+            color: #333;
+        }
+
+        .difficulty.hard {
+            background: #FF6347;
+            color: white;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="map-section">
-            <div class="map-display">
-                <div class="map-overlay">
-                    <h2>⛰️ Mountain Scout</h2>
-                    <p>Drücke "GPS aktivieren" um Gipfel & Pässe zu entdecken!</p>
-                </div>
+        <div class="map-container">
+            <div id="map">
+                <div class="map-tiles"></div>
+            </div>
+            <div class="controls">
+                <button id="gpsBtn" onclick="startGPS()">📍 GPS Aktivieren</button>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">➕</button>
+                <button class="zoom-btn" onclick="zoomOut()">➖</button>
             </div>
         </div>
 
         <div class="sidebar">
-            <h1>⛰️ Mountain Scout</h1>
-            <p class="subtitle">Entdecke Gipfel, Pässe & Natur</p>
-
-            <button class="gps-button" onclick="getCurrentLocation()">📍 GPS aktivieren</button>
-
-            <div class="location-box" id="locationBox">
-                <h3 id="regionName">Loading...</h3>
-                <div class="coords" id="coordsDisplay"></div>
+            <h1>🏔️ Mountain Scout</h1>
+            
+            <div class="status-box" id="statusBox">
+                <div style="color: #856404;">⏳ Warte auf GPS-Signal...</div>
             </div>
 
             <div class="section">
-                <h2>⛰️ Gipfel & Berge</h2>
-                <div id="peaksContainer" class="loading">Warte auf GPS...</div>
+                <h2>📍 Dein Standort</h2>
+                <div class="coordinates" id="coordinates">Keine Daten</div>
+                <div class="location-name" id="locationName">---</div>
+                <div class="region-badge" id="regionBadge">Unbekannt</div>
+            </div>
+
+            <div class="section">
+                <h2>⛰️ Gipfel (5km)</h2>
+                <div id="peaks" class="loading">Warte auf Daten...</div>
             </div>
 
             <div class="section">
                 <h2>🛤️ Pässe & Routen</h2>
-                <div id="passesContainer" class="loading">Warte auf GPS...</div>
+                <div id="passes" class="loading">Warte auf Daten...</div>
             </div>
 
             <div class="section">
-                <h2>📊 Statistiken</h2>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value" id="peakCount">0</div>
-                        <div class="stat-label">Gipfel gefunden</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value" id="passCount">0</div>
-                        <div class="stat-label">Pässe gefunden</div>
-                    </div>
-                </div>
+                <h2>💧 Gewässer</h2>
+                <div id="waters" class="loading">Warte auf Daten...</div>
             </div>
 
-            <button class="export-button" onclick="exportJSON()">📥 JSON exportieren</button>
-            <button class="export-button" onclick="exportGPX()">🗺️ GPX exportieren</button>
+            <div class="section">
+                <h2>🏞️ Sehenswürdigkeiten</h2>
+                <div id="attractions" class="loading">Warte auf Daten...</div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Region Info</h2>
+                <div id="regionInfo" class="stats">---</div>
+            </div>
         </div>
     </div>
 
     <script>
-        let currentLocation = null;
-        let peaksData = [];
-        let passesData = [];
+        let currentLat = null;
+        let currentLon = null;
+        let currentZoom = 5;
+        const RADIUS = 5; // 5km Radius
 
-        function getCurrentLocation() {
+        // Dummy-Datenbank mit Gipfeln, Pässen und Gewässern
+        const POI_DATABASE = {
+            peaks: [
+                { lat: 48.7758, lon: 9.1829, name: "Kandel", height: 1241, difficulty: "medium", visibility: 4.8 },
+                { lat: 48.7650, lon: 9.1900, name: "Schauinsland", height: 1284, difficulty: "hard", visibility: 5.0 },
+                { lat: 48.7500, lon: 9.2000, name: "Kaiserstuhl", height: 556, difficulty: "easy", visibility: 3.2 },
+                { lat: 48.8200, lon: 9.0500, name: "Feldberg", height: 1493, difficulty: "hard", visibility: 4.5 },
+                { lat: 47.8900, lon: 10.9800, name: "Wank", height: 1780, difficulty: "medium", visibility: 4.2 },
+                { lat: 47.5500, lon: 11.0000, name: "Zugspitze", height: 2962, difficulty: "hard", visibility: 5.0 }
+            ],
+            passes: [
+                { lat: 48.7850, lon: 9.1500, name: "Notschrei Pass", height: 1269, type: "mountain pass" },
+                { lat: 48.7600, lon: 9.2100, name: "Hofstetten Pass", height: 1195, type: "mountain pass" },
+                { lat: 47.8500, lon: 10.9000, name: "Brenner Pass", height: 1370, type: "international pass" }
+            ],
+            waters: [
+                { lat: 48.7700, lon: 9.1850, name: "Dreisamtal Bach", type: "stream" },
+                { lat: 48.7400, lon: 9.2200, name: "Windgfällweiher", type: "lake" },
+                { lat: 48.7600, lon: 9.1200, name: "Schwarzwald Bachtal", type: "stream" }
+            ],
+            attractions: [
+                { lat: 48.7730, lon: 9.1760, name: "Freiburg Altstadt", type: "historic", distance: 2.1 },
+                { lat: 48.7600, lon: 9.1900, name: "Markthalle Freiburg", type: "market", distance: 1.8 },
+                { lat: 48.7900, lon: 9.1500, name: "Schluchsee See", type: "nature", distance: 4.3 }
+            ]
+        };
+
+        const REGIONS = {
+            "Schwarzwald": { lat: 48.5, lon: 9.0, terrain: "Schwarzwald - Tannenwälder, Moorlandschaften" },
+            "Alpen": { lat: 47.5, lon: 11.0, terrain: "Bayerische Alpen - Hochgebirge, Bergseen" },
+            "Harz": { lat: 51.8, lon: 10.5, terrain: "Harz - Mittelgebirge, Laubwälder" },
+            "Bayern": { lat: 48.0, lon: 11.5, terrain: "Oberbayern - Voralpen, Seenlandschaft" }
+        };
+
+        function startGPS() {
+            const statusBox = document.getElementById('statusBox');
+            
             if (!navigator.geolocation) {
-                alert('GPS wird nicht unterstützt!');
+                statusBox.innerHTML = '<div style="color: #dc3545;">❌ Geolocation wird von deinem Browser nicht unterstützt!</div>';
+                statusBox.classList.add('error');
                 return;
             }
 
-            console.log('GPS wird angefordert...');
+            statusBox.innerHTML = '<div style="color: #856404;">⏳ GPS wird aktiviert...</div>';
 
             navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    console.log('GPS erfolgreich!', position);
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
+                (position) => {
+                    currentLat = position.coords.latitude;
+                    currentLon = position.coords.longitude;
                     
-                    currentLocation = { lat, lon };
+                    statusBox.innerHTML = '<div style="color: #155724;">✅ GPS-Signal empfangen!</div>';
+                    statusBox.classList.add('success');
                     
-                    updateLocation(lat, lon);
-                    loadPeaks(lat, lon);
-                    loadPasses(lat, lon);
+                    updateMap();
+                    loadNearbyPOIs();
                 },
-                function(error) {
-                    console.error('GPS Fehler:', error);
-                    alert('GPS Fehler: ' + error.message);
+                (error) => {
+                    statusBox.innerHTML = `<div style="color: #dc3545;">❌ GPS Fehler: ${error.message}</div>`;
+                    statusBox.classList.add('error');
                 }
             );
         }
 
-        function updateLocation(lat, lon) {
-            const box = document.getElementById('locationBox');
-            const region = document.getElementById('regionName');
-            const coords = document.getElementById('coordsDisplay');
+        function updateMap() {
+            const mapContainer = document.getElementById('map');
+            mapContainer.innerHTML = `
+                <div class="map-tiles" style="background-image: url('https://tile.openstreetmap.org/${currentZoom}/${Math.floor((currentLon + 180) / 360 * Math.pow(2, currentZoom))}/${Math.floor((1 - Math.log(Math.tan(currentLat * Math.PI / 180) + 1 / Math.cos(currentLat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, currentZoom))}.png');"></div>
+            `;
+            
+            // Marker für aktuellen Standort
+            const marker = document.createElement('div');
+            marker.className = 'marker current';
+            marker.style.left = 'calc(50% - 15px)';
+            marker.style.top = 'calc(50% - 15px)';
+            mapContainer.appendChild(marker);
 
-            region.textContent = 'Dein Standort';
-            coords.textContent = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
-            box.style.display = 'block';
+            // Koordinaten aktualisieren
+            document.getElementById('coordinates').innerText = `${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}`;
         }
 
-        function loadPeaks(lat, lon) {
-            const peaks = [
-                { name: 'Kandel', elevation: 1241, distance: 3.2, difficulty: 3, desc: 'Aussichtsberg mit Turm' },
-                { name: 'Schauinsland', elevation: 1284, distance: 4.8, difficulty: 4, desc: 'Höchster Berg der Region' },
-                { name: 'Belchen', elevation: 1415, distance: 5.1, difficulty: 4, desc: 'Malerischer Gipfel' }
-            ];
+        function loadNearbyPOIs() {
+            // Bestimme aktuelle Region
+            const region = determineRegion(currentLat, currentLon);
+            document.getElementById('locationName').innerText = region;
+            document.getElementById('regionBadge').innerText = `📍 ${region}`;
 
-            const html = peaks.map(p => `
-                <div class="poi-item">
-                    <div class="poi-name">⛰️ ${p.name}</div>
-                    <div class="poi-info">
-                        <span>Höhe: ${p.elevation}m</span>
-                        <span>${p.distance}km entfernt</span>
-                    </div>
-                    <div class="stars">${'⭐'.repeat(p.difficulty)}</div>
-                    <div style="font-size: 11px; color: #999; margin-top: 4px;">${p.desc}</div>
-                </div>
-            `).join('');
-
-            document.getElementById('peaksContainer').innerHTML = html;
-            document.getElementById('peakCount').textContent = peaks.length;
-            peaksData = peaks;
+            // Gipfel laden
+            loadPeaks();
+            
+            // Pässe laden
+            loadPasses();
+            
+            // Gewässer laden
+            loadWaters();
+            
+            // Sehenswürdigkeiten laden
+            loadAttractions();
+            
+            // Region Info
+            loadRegionInfo(region);
         }
 
-        function loadPasses(lat, lon) {
-            const passes = [
-                { name: 'Notschrei Pass', elevation: 1269, distance: 8.2, desc: 'Beliebter Gravel-Pass' },
-                { name: 'Hofstetten Pass', elevation: 1190, distance: 12, desc: 'Technischer Gravel-Pass' }
-            ];
+        function determineRegion(lat, lon) {
+            let closestRegion = "Schwarzwald";
+            let minDistance = Infinity;
 
-            const html = passes.map(p => `
-                <div class="poi-item">
-                    <div class="poi-name">🛤️ ${p.name}</div>
-                    <div class="poi-info">
-                        <span>Höhe: ${p.elevation}m</span>
-                        <span>${p.distance}km entfernt</span>
-                    </div>
-                    <div style="font-size: 11px; color: #999; margin-top: 4px;">${p.desc}</div>
-                </div>
-            `).join('');
-
-            document.getElementById('passesContainer').innerHTML = html;
-            document.getElementById('passCount').textContent = passes.length;
-            passesData = passes;
-        }
-
-        function exportJSON() {
-            if (!currentLocation) {
-                alert('Bitte zuerst GPS aktivieren!');
-                return;
+            for (const [region, data] of Object.entries(REGIONS)) {
+                const distance = getDistance(lat, lon, data.lat, data.lon);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestRegion = region;
+                }
             }
 
-            const data = {
-                timestamp: new Date().toISOString(),
-                location: currentLocation,
-                peaks: peaksData,
-                passes: passesData
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'mountain-scout.json';
-            a.click();
+            return closestRegion;
         }
 
-        function exportGPX() {
-            if (!currentLocation) {
-                alert('Bitte zuerst GPS aktivieren!');
-                return;
-            }
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
 
-            let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1">\n';
-            gpx += '<metadata><time>' + new Date().toISOString() + '</time></metadata>\n';
-            gpx += '<wpt lat="' + currentLocation.lat + '" lon="' + currentLocation.lon + '"><name>Dein Standort</name></wpt>\n';
-
-            peaksData.forEach((p, i) => {
-                gpx += '<wpt lat="' + (currentLocation.lat + 0.01 * (i + 1)) + '" lon="' + (currentLocation.lon + 0.01 * (i + 1)) + '">\n';
-                gpx += '<name>' + p.name + '</name>\n<ele>' + p.elevation + '</ele>\n</wpt>\n';
+        function loadPeaks() {
+            const nearbyPeaks = POI_DATABASE.peaks.filter(peak => {
+                const distance = getDistance(currentLat, currentLon, peak.lat, peak.lon);
+                return distance <= RADIUS;
+            }).sort((a, b) => {
+                const distA = getDistance(currentLat, currentLon, a.lat, a.lon);
+                const distB = getDistance(currentLat, currentLon, b.lat, b.lon);
+                return distA - distB;
             });
 
-            gpx += '</gpx>';
+            const peaksDiv = document.getElementById('peaks');
+            if (nearbyPeaks.length === 0) {
+                peaksDiv.innerHTML = '<div style="color: #666;">Keine Gipfel in 5km Umkreis</div>';
+                return;
+            }
 
-            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'mountain-scout.gpx';
-            a.click();
+            peaksDiv.innerHTML = nearbyPeaks.map(peak => {
+                const distance = getDistance(currentLat, currentLon, peak.lat, peak.lon);
+                const diffColor = peak.difficulty === 'easy' ? 'easy' : peak.difficulty === 'medium' ? 'medium' : 'hard';
+                const diffText = peak.difficulty === 'easy' ? 'Leicht' : peak.difficulty === 'medium' ? 'Mittel' : 'Schwer';
+                return `
+                    <div class="poi-item">
+                        <div class="poi-name">⛰️ ${peak.name}</div>
+                        <div class="poi-info">
+                            <div>Höhe: ${peak.height}m</div>
+                            <div class="poi-distance">${distance.toFixed(1)}km entfernt</div>
+                            <div>Aussicht: ${'⭐'.repeat(Math.floor(peak.visibility))}</div>
+                            <span class="difficulty ${diffColor}">${diffText}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadPasses() {
+            const nearbyPasses = POI_DATABASE.passes.filter(pass => {
+                const distance = getDistance(currentLat, currentLon, pass.lat, pass.lon);
+                return distance <= RADIUS;
+            }).sort((a, b) => {
+                const distA = getDistance(currentLat, currentLon, a.lat, a.lon);
+                const distB = getDistance(currentLat, currentLon, b.lat, b.lon);
+                return distA - distB;
+            });
+
+            const passesDiv = document.getElementById('passes');
+            if (nearbyPasses.length === 0) {
+                passesDiv.innerHTML = '<div style="color: #666;">Keine Pässe in 5km Umkreis</div>';
+                return;
+            }
+
+            passesDiv.innerHTML = nearbyPasses.map(pass => {
+                const distance = getDistance(currentLat, currentLon, pass.lat, pass.lon);
+                return `
+                    <div class="poi-item">
+                        <div class="poi-name">🛤️ ${pass.name}</div>
+                        <div class="poi-info">
+                            <div>Höhe: ${pass.height}m</div>
+                            <div class="poi-distance">${distance.toFixed(1)}km entfernt</div>
+                            <div>Typ: ${pass.type}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadWaters() {
+            const nearbyWaters = POI_DATABASE.waters.filter(water => {
+                const distance = getDistance(currentLat, currentLon, water.lat, water.lon);
+                return distance <= RADIUS;
+            }).sort((a, b) => {
+                const distA = getDistance(currentLat, currentLon, a.lat, a.lon);
+                const distB = getDistance(currentLat, currentLon, b.lat, b.lon);
+                return distA - distB;
+            });
+
+            const watersDiv = document.getElementById('waters');
+            if (nearbyWaters.length === 0) {
+                watersDiv.innerHTML = '<div style="color: #666;">Keine Gewässer in 5km Umkreis</div>';
+                return;
+            }
+
+            watersDiv.innerHTML = nearbyWaters.map(water => {
+                const distance = getDistance(currentLat, currentLon, water.lat, water.lon);
+                const icon = water.type === 'lake' ? '🏞️' : '💧';
+                return `
+                    <div class="poi-item">
+                        <div class="poi-name">${icon} ${water.name}</div>
+                        <div class="poi-info">
+                            <div class="poi-distance">${distance.toFixed(1)}km entfernt</div>
+                            <div>Typ: ${water.type === 'lake' ? 'See' : 'Bach/Fluss'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadAttractions() {
+            const nearbyAttractions = POI_DATABASE.attractions.filter(attr => {
+                const distance = getDistance(currentLat, currentLon, attr.lat, attr.lon);
+                return distance <= RADIUS;
+            }).sort((a, b) => a.distance - b.distance);
+
+            const attractionsDiv = document.getElementById('attractions');
+            if (nearbyAttractions.length === 0) {
+                attractionsDiv.innerHTML = '<div style="color: #666;">Keine Sehenswürdigkeiten in 5km Umkreis</div>';
+                return;
+            }
+
+            attractionsDiv.innerHTML = nearbyAttractions.map(attr => {
+                const icon = attr.type === 'historic' ? '🏰' : attr.type === 'market' ? '🏪' : '🌲';
+                return `
+                    <div class="poi-item">
+                        <div class="poi-name">${icon} ${attr.name}</div>
+                        <div class="poi-info">
+                            <div class="poi-distance">${attr.distance.toFixed(1)}km entfernt</div>
+                            <div>Typ: ${attr.type}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadRegionInfo(region) {
+            const regionData = REGIONS[region];
+            if (!regionData) return;
+
+            const info = `
+                <strong>${region}</strong><br>
+                🌲 ${regionData.terrain}<br>
+                📊 Gelände: 40% Gravel, 35% Asphalt, 25% Singletrack<br>
+                ⛰️ Durchschn. Steigung: 6-8%
+            `;
+
+            document.getElementById('regionInfo').innerHTML = info;
+        }
+
+        function zoomIn() {
+            if (currentZoom < 18) {
+                currentZoom++;
+                if (currentLat && currentLon) updateMap();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > 2) {
+                currentZoom--;
+                if (currentLat && currentLon) updateMap();
+            }
+        }
+
+        // Auto-start bei mobilen Geräten
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            setTimeout(() => {
+                startGPS();
+            }, 1000);
         }
     </script>
 </body>
 </html>
+```
