@@ -1,13 +1,10 @@
-```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BikeStop - Bikepacking POI Finder</title>
-    <!-- Leaflet CSS -->
+    <title>Simple OpenStreetMap - Test</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * {
@@ -15,481 +12,41 @@
             padding: 0;
             box-sizing: border-box;
         }
-
         html, body {
             height: 100%;
             width: 100%;
-            margin: 0;
-            padding: 0;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100%;
-        }
-
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            text-align: center;
-            flex-shrink: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        header h1 {
-            font-size: 1.8em;
-            margin: 0;
-        }
-
-        header p {
-            font-size: 0.9em;
-            margin: 5px 0 0 0;
-            opacity: 0.9;
-        }
-
-        .content {
-            display: flex;
-            flex: 1;
-            gap: 0;
-            overflow: hidden;
-        }
-
-        .map-section {
-            flex: 1;
-            position: relative;
-            min-height: 300px;
-            background: #e0e0e0;
-        }
-
         #map {
             width: 100%;
             height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        .leaflet-container {
             background: #d3d3d3;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .info-section {
-            width: 350px;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            border-left: 1px solid #ddd;
-            padding: 20px;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .status {
-            padding: 12px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            text-align: center;
-            color: #666;
-            font-size: 0.95em;
-            margin-bottom: 15px;
-        }
-
-        .status.active {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .status.error {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .filter-btn {
-            padding: 10px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-            border-color: #667eea;
-            color: #667eea;
-        }
-
-        .filter-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .poi-list {
-            flex: 1;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .poi-item {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .poi-item:hover {
-            background: #f5f5f5;
-            transform: translateX(3px);
-        }
-
-        .poi-item.active {
-            background: #e8eaf6;
-            border-left: 4px solid #667eea;
-        }
-
-        .poi-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .poi-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-        }
-
-        .poi-emoji {
-            font-size: 1.5em;
-            flex-shrink: 0;
-        }
-
-        .poi-name {
-            font-weight: 600;
-            color: #333;
-            font-size: 0.95em;
-        }
-
-        .poi-distance {
-            background: #667eea;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        h3 {
-            font-size: 1em;
-            margin: 15px 0 10px 0;
-            color: #333;
-        }
-
-        @media (max-width: 768px) {
-            .content {
-                flex-direction: column;
-            }
-
-            .map-section {
-                flex: 1;
-                min-height: 300px;
-            }
-
-            .info-section {
-                width: 100%;
-                border-left: none;
-                border-top: 1px solid #ddd;
-                max-height: 300px;
-                padding: 15px;
-            }
-
-            header h1 {
-                font-size: 1.5em;
-            }
-
-            .filters {
-                grid-template-columns: repeat(3, 1fr);
-            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🚴‍♂️ BikeStop</h1>
-            <p>Finde Wasser, Shops & Toiletten in deiner Nähe</p>
-        </header>
-
-        <div class="content">
-            <!-- Karte -->
-            <div class="map-section">
-                <div id="map"></div>
-            </div>
-
-            <!-- Info Panel -->
-            <div class="info-section">
-                <div class="controls">
-                    <button class="btn btn-primary" onclick="startTracking()">📍 GPS starten</button>
-                    <button class="btn btn-secondary" onclick="resetFilters()">Zurück</button>
-                </div>
-
-                <div class="status" id="status">
-                    Klick "GPS starten"
-                </div>
-
-                <h3>Filter:</h3>
-                <div class="filters">
-                    <button class="filter-btn active" onclick="filterPOI('all')">📍 Alle</button>
-                    <button class="filter-btn" onclick="filterPOI('water')">💧 Wasser</button>
-                    <button class="filter-btn" onclick="filterPOI('grocery')">🏪 Shop</button>
-                    <button class="filter-btn" onclick="filterPOI('fuel')">⛽ Tanke</button>
-                    <button class="filter-btn" onclick="filterPOI('toilet')">🚽 WC</button>
-                    <button class="filter-btn" onclick="filterPOI('camp')">🏕️ Camp</button>
-                </div>
-
-                <h3>Nächste POIs:</h3>
-                <div class="poi-list" id="poiList"></div>
-            </div>
-        </div>
-    </div>
-
+    <div id="map"></div>
     <script>
-        let map;
-        let userMarker = null;
-        let poiMarkers = [];
-
-        const mockPOIs = [
-            { id: 1, name: 'Brunnen Hauptplatz', type: 'water', emoji: '💧', distance: 2.3, lat: 48.2024, lon: 16.3694 },
-            { id: 2, name: 'EDEKA Markt', type: 'grocery', emoji: '🏪', distance: 5.1, lat: 48.2050, lon: 16.3700 },
-            { id: 3, name: 'öffentliches WC', type: 'toilet', emoji: '🚽', distance: 7.4, lat: 48.2010, lon: 16.3650 },
-            { id: 4, name: 'Shell Tankstelle', type: 'fuel', emoji: '⛽', distance: 12.8, lat: 48.1950, lon: 16.3800 },
-            { id: 5, name: 'Campingplatz Naturpark', type: 'camp', emoji: '🏕️', distance: 18.5, lat: 48.1850, lon: 16.3950 },
-            { id: 6, name: 'Pizzeria Roma', type: 'food', emoji: '🍕', distance: 3.2, lat: 48.2040, lon: 16.3720 },
-            { id: 7, name: 'Apotheke am Markt', type: 'medical', emoji: '🏥', distance: 2.7, lat: 48.2030, lon: 16.3710 },
-        ];
-
-        let currentFilter = 'all';
-        let userPosition = null;
-
-        function initMap() {
-            console.log('Initialisiere Karte...');
-            
-            map = L.map('map', {
-                center: ,
-                zoom: 13,
-                zoomControl: true,
-                attributionControl: true
-            });
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19,
-                minZoom: 1
-            }).addTo(map);
-
-            console.log('Karte initialisiert');
-            renderPOIs();
-        }
-
-        function startTracking() {
-            const status = document.getElementById('status');
-            
-            if (!navigator.geolocation) {
-                status.textContent = '❌ GPS nicht verfügbar';
-                status.className = 'status error';
-                return;
-            }
-
-            status.textContent = '📍 GPS wird aktiviert...';
-            status.className = 'status active';
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    userPosition = {
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    };
-                    
-                    console.log('Position erhalten:', userPosition);
-
-                    status.textContent = `✅ Position: ${userPosition.lat.toFixed(4)}, ${userPosition.lon.toFixed(4)}`;
-                    status.className = 'status active';
-
-                    updateMap();
-                },
-                (error) => {
-                    status.textContent = `❌ GPS-Fehler: ${error.message}`;
-                    status.className = 'status error';
-                    console.error('GPS Fehler:', error);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-
-        function filterPOI(type) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            renderPOIs();
-        }
-
-        function resetFilters() {
-            currentFilter = 'all';
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.filter-btn')[0].classList.add('active');
-            renderPOIs();
-        }
-
-        function renderPOIs() {
-            const poiList = document.getElementById('poiList');
-            poiList.innerHTML = '';
-
-            let filtered = mockPOIs;
-            if (currentFilter !== 'all') {
-                filtered = mockPOIs.filter(poi => poi.type === currentFilter);
-            }
-
-            filtered.sort((a, b) => a.distance - b.distance);
-
-            if (filtered.length === 0) {
-                poiList.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Keine POIs gefunden</div>';
-                return;
-            }
-
-            filtered.forEach(poi => {
-                const div = document.createElement('div');
-                div.className = 'poi-item';
-                div.innerHTML = `
-                    <div class="poi-info">
-                        <div class="poi-left">
-                            <span class="poi-emoji">${poi.emoji}</span>
-                            <span class="poi-name">${poi.name}</span>
-                        </div>
-                        <span class="poi-distance">${poi.distance.toFixed(1)} km</span>
-                    </div>
-                `;
-                div.onclick = () => {
-                    document.querySelectorAll('.poi-item').forEach(item => item.classList.remove('active'));
-                    div.classList.add('active');
-                    if (map) map.setView(, 15);
-                };
-                poiList.appendChild(div);
-            });
-        }
-
-        function updateMap() {
-            if (userPosition && map) {
-                if (userMarker) map.removeLayer(userMarker);
-                
-                userMarker = L.circleMarker(, {
-                    radius: 10,
-                    fillColor: '#667eea',
-                    color: '#764ba2',
-                    weight: 3,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(map).bindPopup('📍 Du bist hier');
-                
-                map.setView(, 13);
-
-                poiMarkers.forEach(m => map.removeLayer(m));
-                poiMarkers = [];
-
-                mockPOIs.forEach(poi => {
-                    const marker = L.marker().addTo(map);
-                    marker.bindPopup(`<b>${poi.emoji} ${poi.name}</b><br>${poi.distance.toFixed(1)} km`);
-                    poiMarkers.push(marker);
-                });
-            }
-        }
-
-        window.addEventListener('load', () => {
-            console.log('Seite geladen');
-            setTimeout(() => {
-                initMap();
-            }, 500);
-        });
-
-        console.log('BikeStop App geladen');
+        console.log('Script startet...');
+        
+        // Karte initialisieren
+        var map = L.map('map').setView(, 13);
+        
+        console.log('Karte erstellt');
+        
+        // OpenStreetMap Layer hinzufügen
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        console.log('Tile Layer hinzugefügt');
+        
+        // Test-Marker
+        L.marker().addTo(map)
+            .bindPopup('Test Marker')
+            .openPopup();
+        
+        console.log('Marker hinzugefügt');
     </script>
 </body>
 </html>
-```
-
-Jetzt auf GitHub hochladen:
-
-1. Gehe zu https://github.com/unkevined/BikeStop
-2. Klick auf `index.html`
-3. Klick auf den **Stift** (Edit)
-4. Lösche alles und füge den neuen Code ein
-5. **Commit changes**
-
-Dann auf deinem Handy:
-https://unkevined.github.io/BikeStop/
-
-**Strg + Shift + R** drücken (Cache leeren) und die Seite neu laden!
-
-Jetzt sollte die **echte OpenStreetMap** angezeigt werden! 🗺️
