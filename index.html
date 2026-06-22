@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BikeStop - Snapshot Camera & AI Recognition</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2"></script>
+    <title>BikeStop - Mountain Scout (Natur & Gipfel Finder)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,329 +17,319 @@
         html, body {
             width: 100%;
             height: 100%;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
         }
 
         .container {
             display: flex;
             height: 100vh;
+            gap: 0;
         }
 
-        #cameraContainer {
+        #mapContainer {
             flex: 1;
-            background: #000;
             position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            background: #e0e0e0;
         }
 
-        video {
+        #map {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-        }
-
-        #canvas {
-            display: none;
-        }
-
-        .camera-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            z-index: 10;
-        }
-
-        .camera-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 3px solid white;
-            background: rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
-        }
-
-        .camera-btn:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(1.1);
-        }
-
-        .camera-btn.active {
-            background: #667eea;
-            border-color: #667eea;
-        }
-
-        .ai-status {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 10;
-        }
-
-        .ai-status.loading::after {
-            content: ' ...';
-            animation: dots 1.5s infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: ' .'; }
-            40% { content: ' ..'; }
-            60%, 100% { content: ' ...'; }
+            z-index: 1;
         }
 
         .sidebar {
-            width: 350px;
+            width: 380px;
             background: white;
             border-left: 1px solid #ddd;
             overflow-y: auto;
             padding: 20px;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            box-shadow: -2px 0 8px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
+            z-index: 100;
         }
 
-        .sidebar h2 {
-            color: #667eea;
+        .sidebar h1 {
+            color: #2c5f2d;
+            font-size: 20px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar h1 span {
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 12px;
             margin-bottom: 20px;
-            font-size: 18px;
+        }
+
+        .location-display {
+            background: linear-gradient(135deg, #2c5f2d 0%, #4a8f50 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(44, 95, 45, 0.3);
+        }
+
+        .location-display h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .coords {
+            font-size: 11px;
+            opacity: 0.9;
+            font-family: monospace;
+            margin-bottom: 8px;
+        }
+
+        .region-type {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
         }
 
         .section {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
             border-bottom: 1px solid #eee;
         }
 
-        .section h3 {
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section h2 {
             font-size: 14px;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .ai-results {
+        .poi-item {
             background: #f9f9f9;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #2c5f2d;
             padding: 12px;
-            border-radius: 5px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .poi-item:hover {
+            background: #f0f0f0;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .poi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .poi-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .poi-distance {
+            background: #2c5f2d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+
+        .poi-elevation {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .difficulty {
+            display: inline-flex;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+
+        .star {
+            color: #ffc107;
+            font-size: 14px;
+        }
+
+        .poi-description {
+            font-size: 12px;
+            color: #777;
+            line-height: 1.4;
+        }
+
+        .landscape-info {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 12px;
+            border-radius: 6px;
             margin-bottom: 10px;
         }
 
-        .ai-result-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            margin-bottom: 8px;
-            padding: 8px;
-            background: white;
-            border-radius: 3px;
-        }
-
-        .ai-result-label {
+        .landscape-type {
             font-weight: bold;
-            color: #333;
+            color: #2c5f2d;
+            margin-bottom: 6px;
+            font-size: 13px;
         }
 
-        .ai-result-confidence {
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 11px;
+        .landscape-desc {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.4;
         }
 
-        .snapshot-list {
-            flex: 1;
-            overflow-y: auto;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
             margin-top: 10px;
         }
 
-        .snapshot-item {
+        .stat-box {
             background: #f9f9f9;
-            border-left: 4px solid #667eea;
             padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
+            border-radius: 6px;
+            text-align: center;
         }
 
-        .snapshot-thumb {
-            width: 50px;
-            height: 50px;
-            border-radius: 3px;
-            object-fit: cover;
-            cursor: pointer;
-        }
-
-        .snapshot-info {
-            flex: 1;
-            font-size: 12px;
-        }
-
-        .snapshot-title {
+        .stat-value {
+            font-size: 18px;
             font-weight: bold;
-            color: #333;
-            margin-bottom: 3px;
+            color: #2c5f2d;
         }
 
-        .snapshot-time {
+        .stat-label {
+            font-size: 11px;
             color: #999;
-            font-size: 11px;
+            margin-top: 4px;
         }
 
-        .snapshot-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-            margin-top: 5px;
-        }
-
-        .tag {
-            background: #667eea;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-        }
-
-        .snapshot-delete {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .snapshot-delete:hover {
-            background: #ff5252;
-        }
-
-        button {
+        .gps-button {
             width: 100%;
             padding: 12px;
-            background: #667eea;
+            background: linear-gradient(135deg, #2c5f2d 0%, #4a8f50 100%);
             color: white;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            border-radius: 6px;
             font-weight: bold;
+            cursor: pointer;
             transition: all 0.3s;
             font-size: 14px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button:hover {
-            background: #5568d3;
+        .gps-button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(44, 95, 45, 0.3);
+        }
+
+        .gps-button:active {
+            transform: translateY(0);
+        }
+
+        .export-button {
+            width: 100%;
+            padding: 10px;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .export-button:hover {
+            background: #e0e0e0;
         }
 
         .info-box {
             background: #e3f2fd;
             border-left: 4px solid #2196F3;
             padding: 12px;
-            border-radius: 5px;
-            font-size: 13px;
+            border-radius: 6px;
+            font-size: 12px;
             color: #1565c0;
             margin-bottom: 15px;
+            line-height: 1.5;
         }
 
-        .status-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+        .loading {
             text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 12px;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
+        .spinner {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2c5f2d;
+            animation: spin 1s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .marker-icon {
+            background: white;
+            border: 3px solid #2c5f2d;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            max-width: 90%;
-            max-height: 90%;
-            border-radius: 10px;
-            position: relative;
-        }
-
-        .modal-content img {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 10px;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #667eea;
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 24px;
+            font-size: 16px;
             cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        .stats {
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 5px;
+        .no-data {
+            color: #999;
             font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #333;
-            font-weight: bold;
-        }
-
-        .stat-value {
-            color: #667eea;
-            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
         }
 
         @media (max-width: 768px) {
@@ -347,328 +337,369 @@
                 flex-direction: column;
             }
 
-            #cameraContainer {
-                flex: 1;
-                min-height: 50vh;
-            }
-
             .sidebar {
                 width: 100%;
                 border-left: none;
                 border-top: 1px solid #ddd;
-                max-height: 50vh;
+                max-height: 45vh;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 999;
+                border-radius: 12px 12px 0 0;
             }
 
-            .camera-controls {
-                bottom: 10px;
+            #mapContainer {
+                height: 55vh;
             }
 
-            .camera-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 24px;
+            #map {
+                border-radius: 12px 12px 0 0;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div id="cameraContainer">
-            <video id="video" autoplay playsinline></video>
-            <canvas id="canvas"></canvas>
-            <div class="ai-status" id="aiStatus">🤖 AI bereit</div>
-            <div class="camera-controls">
-                <button class="camera-btn" id="snapButton" title="Foto machen">📸</button>
-                <button class="camera-btn" id="startStopBtn" title="Kamera starten/stoppen">▶️</button>
-            </div>
+        <div id="mapContainer">
+            <div id="map"></div>
         </div>
 
         <div class="sidebar">
-            <h2>📸 BikeStop Snapshot</h2>
+            <h1><span>⛰️</span> Mountain Scout</h1>
+            <p class="subtitle">Entdecke Gipfel, Pässe & Natur in deiner Umgebung</p>
 
-            <div class="info-box">
-                📷 Mach Fotos während des Bikens! Die AI erkennt automatisch, was auf dem Foto zu sehen ist.
+            <button class="gps-button" onclick="getCurrentLocation()">
+                <span>📍</span> GPS aktivieren
+            </button>
+
+            <div class="location-display" id="locationDisplay" style="display:none;">
+                <h3 id="regionName">Lädt...</h3>
+                <div class="coords" id="coordsDisplay"></div>
+                <span class="region-type" id="regionType">Alpen</span>
+            </div>
+
+            <div class="info-box" id="infoBox" style="display:none;">
+                <strong>📍 GPS aktiv!</strong><br>
+                Zeige alle Gipfel, Pässe und Sehenswürdigkeiten in 5km Umkreis.
             </div>
 
             <div class="section">
-                <h3>🤖 AI Erkennungsergebnisse</h3>
-                <div class="ai-results" id="aiResults">
-                    <div style="color: #999; font-size: 12px; text-align: center;">Noch keine Erkennisse</div>
+                <h2>⛰️ Gipfel & Berge</h2>
+                <div id="peaksContainer" class="loading">
+                    <span class="spinner"></span>Warte auf GPS...
                 </div>
             </div>
 
             <div class="section">
-                <h3>📊 Statistiken</h3>
-                <div class="stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Fotos:</span>
-                        <span class="stat-value" id="photoCount">0</span>
+                <h2>🛤️ Pässe & Routen</h2>
+                <div id="passesContainer" class="loading">
+                    <span class="spinner"></span>Warte auf GPS...
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🌲 Landschaftstyp</h2>
+                <div id="landscapeContainer" class="loading">
+                    <span class="spinner"></span>Warte auf GPS...
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 Statistiken</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="peakCount">0</div>
+                        <div class="stat-label">Gipfel</div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Erkannt:</span>
-                        <span class="stat-value" id="recognizedCount">0</span>
+                    <div class="stat-box">
+                        <div class="stat-value" id="passCount">0</div>
+                        <div class="stat-label">Pässe</div>
                     </div>
                 </div>
             </div>
 
-            <div class="section">
-                <h3>💾 Fotos (<span id="snapshotCount">0</span>)</h3>
-                <div class="snapshot-list" id="snapshotList">
-                    <p style="color: #999; font-size: 12px;">Noch keine Fotos gemacht</p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h3>💾 Export</h3>
-                <button onclick="exportSnapshots()">JSON exportieren</button>
-                <button onclick="downloadAllPhotos()">Alle Fotos ZIP</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="photoModal">
-        <div class="modal-content">
-            <img id="modalImage">
-            <button class="modal-close" onclick="closeModal()">✕</button>
+            <button class="export-button" onclick="exportData()">📥 Daten exportieren</button>
+            <button class="export-button" onclick="downloadGPX()">🗺️ GPX herunterladen</button>
         </div>
     </div>
 
     <script>
-        let net;
-        let snapshots = [];
-        let isRecording = false;
-        let lastResults = null;
+        let map;
+        let userMarker;
+        let currentLocation = null;
+        let peaksData = [];
+        let passesData = [];
 
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const snapButton = document.getElementById('snapButton');
-        const startStopBtn = document.getElementById('startStopBtn');
-        const aiStatus = document.getElementById('aiStatus');
-
-        // Lade MobileNet AI-Modell
-        async function loadModel() {
-            aiStatus.textContent = '🤖 Lade AI-Modell...';
-            aiStatus.classList.add('loading');
-            try {
-                net = await mobilenet.load();
-                aiStatus.textContent = '🤖 AI bereit';
-                aiStatus.classList.remove('loading');
-                console.log('MobileNet Modell geladen!');
-            } catch (error) {
-                aiStatus.textContent = '❌ AI Fehler';
-                console.error('Fehler beim Laden des Modells:', error);
-            }
+        // Initialisiere Karte
+        function initMap() {
+            map = L.map('map').setView(, 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
         }
 
-        // Starte Kamera
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
-                video.srcObject = stream;
-                isRecording = true;
-                startStopBtn.textContent = '⏹️';
-            } catch (error) {
-                alert('Kamera konnte nicht gestartet werden: ' + error.message);
-                console.error(error);
-            }
-        }
-
-        // Stoppe Kamera
-        function stopCamera() {
-            const stream = video.srcObject;
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-            isRecording = false;
-            startStopBtn.textContent = '▶️';
-        }
-
-        // Kamera starten/stoppen
-        startStopBtn.addEventListener('click', () => {
-            if (isRecording) {
-                stopCamera();
-            } else {
-                startCamera();
-            }
-        });
-
-        // Foto machen & AI-Analyse
-        snapButton.addEventListener('click', async () => {
-            if (!video.srcObject) {
-                alert('Kamera nicht aktiv!');
+        // Hole aktuelle Position
+        async function getCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('Geolocation wird nicht unterstützt!');
                 return;
             }
 
-            // Zeichne Video auf Canvas
-            const ctx = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    currentLocation = { lat, lon };
 
-            // Konvertiere zu Blob
-            canvas.toBlob(blob => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const photoData = e.target.result;
+                    updateLocation(lat, lon);
+                    loadNearbyPeaks(lat, lon);
+                    loadNearbyPasses(lat, lon);
+                    identifyLandscape(lat, lon);
+                },
+                (error) => {
+                    alert('GPS Fehler: ' + error.message);
+                }
+            );
+        }
 
-                    // AI-Analyse
-                    analyzePhoto(photoData);
-                };
-                reader.readAsDataURL(blob);
+        // Update Standort-Display
+        function updateLocation(lat, lon) {
+            map.setView([lat, lon], 14);
+
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+
+            userMarker = L.circleMarker([lat, lon], {
+                radius: 8,
+                fillColor: '#2c5f2d',
+                color: '#fff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            const display = document.getElementById('locationDisplay');
+            const regionName = document.getElementById('regionName');
+            const coordsDisplay = document.getElementById('coordsDisplay');
+            const infoBox = document.getElementById('infoBox');
+
+            regionName.textContent = `${lat.toFixed(4)}° N`;
+            coordsDisplay.textContent = `${lon.toFixed(4)}° E`;
+            display.style.display = 'block';
+            infoBox.style.display = 'block';
+        }
+
+        // Lade nahegelegene Gipfel (Mock-Daten)
+        function loadNearbyPeaks(lat, lon) {
+            const peaks = [
+                {
+                    name: 'Kandel',
+                    elevation: 1241,
+                    distance: 3.2,
+                    difficulty: 3,
+                    description: 'Beliebter Aussichtsberg mit Turm',
+                    lat: lat + 0.03,
+                    lon: lon + 0.01
+                },
+                {
+                    name: 'Schauinsland',
+                    elevation: 1284,
+                    distance: 4.8,
+                    difficulty: 4,
+                    description: 'Höchster Berg der Region',
+                    lat: lat - 0.02,
+                    lon: lon + 0.04
+                },
+                {
+                    name: 'Belchen',
+                    elevation: 1415,
+                    distance: 5.1,
+                    difficulty: 4,
+                    description: 'Malerischer Gipfel',
+                    lat: lat + 0.04,
+                    lon: lon - 0.02
+                }
+            ];
+
+            displayPeaks(peaks);
+            peaksData = peaks;
+            document.getElementById('peakCount').textContent = peaks.length;
+        }
+
+        // Zeige Gipfel
+        function displayPeaks(peaks) {
+            const container = document.getElementById('peaksContainer');
+            
+            if (peaks.length === 0) {
+                container.innerHTML = '<div class="no-data">Keine Gipfel in der Nähe</div>';
+                return;
+            }
+
+            container.innerHTML = peaks.map(peak => `
+                <div class="poi-item" onclick="focusPeak(${peak.lat}, ${peak.lon})">
+                    <div class="poi-header">
+                        <span class="poi-name">⛰️ ${peak.name}</span>
+                        <span class="poi-distance">${peak.distance.toFixed(1)}km</span>
+                    </div>
+                    <div class="poi-elevation">Höhe: ${peak.elevation}m</div>
+                    <div class="difficulty">
+                        ${Array(peak.difficulty).fill('⭐').join('')}
+                    </div>
+                    <div class="poi-description">${peak.description}</div>
+                </div>
+            `).join('');
+
+            // Füge Marker zur Karte hinzu
+            peaks.forEach(peak => {
+                L.marker(, {
+                    icon: L.divIcon({
+                        html: '<div class="marker-icon">⛰️</div>',
+                        className: ''
+                    })
+                }).bindPopup(`<strong>${peak.name}</strong><br>${peak.elevation}m`).addTo(map);
             });
-        });
+        }
 
-        // AI-Analyse mit MobileNet
-        async function analyzePhoto(photoData) {
-            if (!net) {
-                alert('AI-Modell nicht geladen!');
+        // Lade nahegelegene Pässe
+        function loadNearbyPasses(lat, lon) {
+            const passes = [
+                {
+                    name: 'Notschrei Pass',
+                    elevation: 1269,
+                    distance: 8.2,
+                    description: 'Beliebter Gravel-Pass',
+                    lat: lat + 0.07,
+                    lon: lon - 0.03
+                },
+                {
+                    name: 'Hofstetten Pass',
+                    elevation: 1190,
+                    distance: 12,
+                    description: 'Technischer Gravel-Pass',
+                    lat: lat - 0.08,
+                    lon: lon + 0.05
+                }
+            ];
+
+            displayPasses(passes);
+            passesData = passes;
+            document.getElementById('passCount').textContent = passes.length;
+        }
+
+        // Zeige Pässe
+        function displayPasses(passes) {
+            const container = document.getElementById('passesContainer');
+            
+            if (passes.length === 0) {
+                container.innerHTML = '<div class="no-data">Keine Pässe in der Nähe</div>';
                 return;
             }
 
-            aiStatus.textContent = '🤖 Analysiere Foto...';
-            aiStatus.classList.add('loading');
+            container.innerHTML = passes.map(pass => `
+                <div class="poi-item" onclick="focusPeak(${pass.lat}, ${pass.lon})">
+                    <div class="poi-header">
+                        <span class="poi-name">🛤️ ${pass.name}</span>
+                        <span class="poi-distance">${pass.distance.toFixed(1)}km</span>
+                    </div>
+                    <div class="poi-elevation">Pass-Höhe: ${pass.elevation}m</div>
+                    <div class="poi-description">${pass.description}</div>
+                </div>
+            `).join('');
 
-            try {
-                // Erstelle Image-Element
-                const img = document.createElement('img');
-                img.src = photoData;
-
-                img.onload = async () => {
-                    // AI-Vorhersage
-                    const predictions = await net.classify(img);
-
-                    aiStatus.textContent = '🤖 AI bereit';
-                    aiStatus.classList.remove('loading');
-
-                    // Speichere Snapshot
-                    const snapshot = {
-                        id: Date.now(),
-                        photo: photoData,
-                        timestamp: new Date().toLocaleString('de-DE'),
-                        predictions: predictions.slice(0, 5) // Top 5
-                    };
-
-                    snapshots.push(snapshot);
-                    lastResults = predictions;
-
-                    updateUI();
-                    displayResults(predictions);
-                };
-            } catch (error) {
-                aiStatus.textContent = '❌ Analysefehler';
-                console.error('AI-Fehler:', error);
-            }
+            // Füge Marker zur Karte hinzu
+            passes.forEach(pass => {
+                L.marker(, {
+                    icon: L.divIcon({
+                        html: '<div class="marker-icon">🛤️</div>',
+                        className: ''
+                    })
+                }).bindPopup(`<strong>${pass.name}</strong><br>${pass.elevation}m Pass`).addTo(map);
+            });
         }
 
-        // Zeige AI-Ergebnisse
-        function displayResults(predictions) {
-            const resultsDiv = document.getElementById('aiResults');
-            resultsDiv.innerHTML = predictions.slice(0, 5).map(p => `
-                <div class="ai-result-item">
-                    <span class="ai-result-label">${p.className}</span>
-                    <span class="ai-result-confidence">${(p.probability * 100).toFixed(1)}%</span>
+        // Identifiziere Landschaftstyp
+        function identifyLandscape(lat, lon) {
+            const landscapes = [
+                {
+                    type: '🌲 Schwarzwald',
+                    description: 'Tannenwälder, Moorlandschaften, Bachläufe',
+                    avgElevation: '500-1400m',
+                    terrain: '40% Gravel, 35% Asphalt, 25% Singletrack'
+                }
+            ];
+
+            const container = document.getElementById('landscapeContainer');
+            container.innerHTML = landscapes.map(l => `
+                <div class="landscape-info">
+                    <div class="landscape-type">${l.type}</div>
+                    <div class="landscape-desc">${l.description}</div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        <strong>Höhenlage:</strong> ${l.avgElevation}<br>
+                        <strong>Gelände:</strong> ${l.terrain}
+                    </div>
                 </div>
             `).join('');
         }
 
-        // Update UI
-        function updateUI() {
-            document.getElementById('photoCount').textContent = snapshots.length;
-            document.getElementById('snapshotCount').textContent = snapshots.length;
-
-            const list = document.getElementById('snapshotList');
-            if (snapshots.length === 0) {
-                list.innerHTML = '<p style="color: #999; font-size: 12px;">Noch keine Fotos gemacht</p>';
-                return;
-            }
-
-            list.innerHTML = snapshots.map(snap => {
-                const topPrediction = snap.predictions[0];
-                const tags = snap.predictions.slice(0, 3).map(p => p.className).join(', ');
-
-                return `
-                    <div class="snapshot-item">
-                        <img src="${snap.photo}" class="snapshot-thumb" onclick="showModal('${snap.photo}')">
-                        <div class="snapshot-info">
-                            <div class="snapshot-title">${topPrediction.className}</div>
-                            <div class="snapshot-time">${snap.timestamp}</div>
-                            <div class="snapshot-tags">
-                                ${snap.predictions.slice(0, 2).map(p => `<span class="tag">${p.className}</span>`).join('')}
-                            </div>
-                        </div>
-                        <button class="snapshot-delete" onclick="deleteSnapshot(${snap.id})">✕</button>
-                    </div>
-                `;
-            }).join('');
+        // Fokussiere auf Gipfel/Pass
+        function focusPeak(lat, lon) {
+            map.setView([lat, lon], 15);
         }
 
-        // Lösche Snapshot
-        function deleteSnapshot(id) {
-            snapshots = snapshots.filter(s => s.id !== id);
-            updateUI();
-        }
+        // Exportiere Daten
+        function exportData() {
+            const data = {
+                location: currentLocation,
+                timestamp: new Date().toISOString(),
+                peaks: peaksData,
+                passes: passesData
+            };
 
-        // Zeige Modal
-        function showModal(photoData) {
-            document.getElementById('modalImage').src = photoData;
-            document.getElementById('photoModal').classList.add('active');
-        }
-
-        // Schließe Modal
-        function closeModal() {
-            document.getElementById('photoModal').classList.remove('active');
-        }
-
-        // Exportiere Snapshots als JSON
-        function exportSnapshots() {
-            if (snapshots.length === 0) {
-                alert('Keine Fotos zum Exportieren!');
-                return;
-            }
-
-            const data = snapshots.map(s => ({
-                timestamp: s.timestamp,
-                predictions: s.predictions
-            }));
-
-            const dataStr = JSON.stringify(data, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'bikestop-snapshots.json';
+            link.download = 'mountain-scout-data.json';
             link.click();
         }
 
-        // Download alle Fotos (vereinfacht - kein echtes ZIP)
-        function downloadAllPhotos() {
-            if (snapshots.length === 0) {
-                alert('Keine Fotos zum Herunterladen!');
+        // Download GPX
+        function downloadGPX() {
+            if (!currentLocation) {
+                alert('Bitte zuerst GPS aktivieren!');
                 return;
             }
 
-            snapshots.forEach((snap, idx) => {
-                const link = document.createElement('a');
-                link.href = snap.photo;
-                link.download = `bikestop-${snap.id}.png`;
-                link.click();
+            let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            gpx += '<gpx version="1.1">\n';
+            gpx += '<metadata><time>' + new Date().toISOString() + '</time></metadata>\n';
+            gpx += '<wpt lat="' + currentLocation.lat + '" lon="' + currentLocation.lon + '">\n';
+            gpx += '<name>Aktueller Standort</name></wpt>\n';
+
+            peaksData.forEach(peak => {
+                gpx += '<wpt lat="' + peak.lat + '" lon="' + peak.lon + '">\n';
+                gpx += '<name>' + peak.name + '</name>\n';
+                gpx += '<ele>' + peak.elevation + '</ele>\n';
+                gpx += '</wpt>\n';
             });
 
-            alert('Alle ' + snapshots.length + ' Fotos werden heruntergeladen!');
+            gpx += '</gpx>';
+
+            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mountain-scout.gpx';
+            link.click();
         }
 
         // Initialisierung
         window.addEventListener('DOMContentLoaded', () => {
-            loadModel();
-            startCamera();
-        });
-
-        // Cleanup
-        window.addEventListener('beforeunload', () => {
-            stopCamera();
+            initMap();
         });
     </script>
 </body>
